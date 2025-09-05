@@ -9,49 +9,31 @@ export function VideoPlayer() {
   const [loading, setLoading] = useState(true); // Trạng thái loading
   const [isDevTool, setIsDevTool] = useState(false); // Thêm state để kiểm tra DevTools
 
-  // Kiểm tra DevTools khi kích thước cửa sổ thay đổi
+  // Kiểm tra DevTools bằng phương pháp kiểm tra đối tượng console
   useEffect(() => {
-    let initialWidth = window.innerWidth; // Lấy độ rộng ban đầu của cửa sổ
-    let initialHeight = window.innerHeight; // Lấy độ cao ban đầu của cửa sổ
-
-    const checkDevTools = () => {
-      // Kiểm tra xem cửa sổ đã thay đổi đáng kể không
-      if (
-        (window.innerWidth < initialWidth - 20) || // Nếu độ rộng giảm hơn 20px
-        (window.innerHeight < initialHeight - 20) // Nếu độ cao giảm hơn 20px
-      ) {
-        setIsDevTool(true); // Nếu phát hiện thay đổi lớn, đánh dấu DevTools đã mở
-      }
-    };
-
-    // Kiểm tra khi cửa sổ thay đổi kích thước
-    window.addEventListener('resize', checkDevTools);
-
-    // Dọn dẹp khi component unmount hoặc khi đã phát hiện DevTools mở
-    return () => {
-      window.removeEventListener('resize', checkDevTools);
-    };
-  }, []); // Chỉ chạy khi component mount
-
-  // Kiểm tra DevTools ngay lập tức khi trang tải, để bắt DevTools đã mở từ trước
-  useEffect(() => {
-    // Phát hiện DevTools dựa trên phương thức console
     const devtoolsDetection = () => {
       const devtools = /./;
       devtools.toString = function () {
         setIsDevTool(true); // Nếu DevTools mở thì cập nhật trạng thái
       };
       console.log(devtools); // Thực thi để kích hoạt việc kiểm tra
+
+      // Kiểm tra devtools bằng cách so sánh thời gian phản hồi
+      setTimeout(() => {
+        if (isDevTool) {
+          setIsDevTool(true); // Nếu phát hiện mở DevTools
+        }
+      }, 100);
     };
 
     devtoolsDetection(); // Kiểm tra DevTools khi component được mount
 
-    // Dọn dẹp nếu cần
     return () => {
-      clearTimeout();
+      clearTimeout(); // Dọn dẹp
     };
-  }, []); // Chỉ chạy một lần khi component mount
+  }, []); // Chạy chỉ một lần khi component mount
 
+  // Fetch video chỉ khi DevTools không mở
   useEffect(() => {
     if (order_id && video_id && !isDevTool) {
       const fetchVideo = async () => {
