@@ -3,11 +3,11 @@ import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom'; // Import useParams để lấy tham số URL
 
 export function VideoPlayer() {
+  let isDevTool = false;
   const { order_id, video_id } = useParams(); // Lấy order_id và video_id từ URL
   const [videoUrl, setVideoUrl] = useState(null); // State để lưu trữ URL video
   const [orderInfo, setOrderInfo] = useState(null); // State để lưu thông tin đơn hàng
   const [loading, setLoading] = useState(true); // Trạng thái loading
-  const [isDevTool, setIsDevTool] = useState(false); // Thêm state để kiểm tra DevTools
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight }); // Trạng thái kích thước cửa sổ
   
   // Lưu kích thước cửa sổ ban đầu khi trang load lần đầu
@@ -15,27 +15,22 @@ export function VideoPlayer() {
 
   // Kiểm tra khi DevTools mở
   function onDevToolsOpen() {
-    setIsDevTool(true); // Đánh dấu DevTools đã mở
-    setVideoUrl(null);  // Xóa URL video khi DevTools mở
+    isDevTool = true;
+    setVideoUrl(null); // Khi DevTools mở, xóa URL video
+  }
+
+  class DevToolsChecker extends Error {
+    toString() {
+      return ''; // Trả về một chuỗi rỗng
+    }
+
+    get message() {
+      onDevToolsOpen(); // Khi DevTools mở, gọi hàm này
+    }
   }
 
   // Kiểm tra DevTools thông qua đối tượng console
-  useEffect(() => {
-    const devtoolsDetection = () => {
-      const devtools = /./;
-      devtools.toString = function () {
-        onDevToolsOpen(); // Khi DevTools mở, gọi hàm này
-      };
-      console.log(devtools); // Thực thi để kích hoạt việc kiểm tra
-    };
-
-    devtoolsDetection(); // Kiểm tra DevTools khi component được mount
-
-    // Dọn dẹp khi cần
-    return () => {
-      clearTimeout();
-    };
-  }, []);
+  console.log(new DevToolsChecker());
 
   // Kiểm tra thay đổi kích thước cửa sổ so với kích thước ban đầu
   useEffect(() => {
@@ -77,7 +72,7 @@ export function VideoPlayer() {
           setOrderInfo(data.data.order); // Lưu thông tin đơn hàng
           setLoading(false); // Nếu DevTools mở thì không cần loading
         } catch (error) {
-          console.error('Error fetching video:', error);
+          // console.error('Error fetching video:', error);
           setLoading(false); // Đảm bảo không bị treo trong trường hợp lỗi
         }
       };
