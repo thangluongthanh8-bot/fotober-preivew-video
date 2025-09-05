@@ -9,30 +9,26 @@ export function VideoPlayer() {
   const [loading, setLoading] = useState(true); // Trạng thái loading
   const [isDevTool, setIsDevTool] = useState(false); // Thêm state để kiểm tra DevTools
 
-  // Kiểm tra DevTools khi kích thước cửa sổ thay đổi
+  // Kiểm tra DevTools ngay từ khi trang tải
   useEffect(() => {
-    let initialWidth = window.innerWidth; // Lấy độ rộng ban đầu của cửa sổ
-    let initialHeight = window.innerHeight; // Lấy độ cao ban đầu của cửa sổ
-    let checkTimeout;
+    const devtoolsDetection = () => {
+      const devtools = /./;
+      devtools.toString = function () {
+        setIsDevTool(true); // Nếu DevTools mở thì cập nhật trạng thái
+      };
+      console.log(devtools); // Thực thi để kích hoạt việc kiểm tra
 
-    const checkDevTools = () => {
-      // Kiểm tra xem cửa sổ đã thay đổi đáng kể không
-      if (
-        (window.innerWidth < initialWidth - 20) || // Nếu độ rộng giảm hơn 20px
-        (window.innerHeight < initialHeight - 20) // Nếu độ cao giảm hơn 20px
-      ) {
-        setIsDevTool(true); // Nếu phát hiện thay đổi lớn, đánh dấu DevTools đã mở
-        clearTimeout(checkTimeout); // Dừng kiểm tra nữa
+      // Kiểm tra sự hiện diện của `debugger` trong console
+      if (window.devtools) {
+        setIsDevTool(true);
       }
     };
 
-    // Kiểm tra khi cửa sổ thay đổi kích thước
-    window.addEventListener('resize', checkDevTools);
+    devtoolsDetection(); // Kiểm tra DevTools khi component được mount
 
-    // Clean up khi component unmount hoặc khi đã phát hiện DevTools mở
+    // Dọn dẹp nếu cần
     return () => {
-      window.removeEventListener('resize', checkDevTools);
-      clearTimeout(checkTimeout); // Dọn dẹp timeout
+      clearTimeout();
     };
   }, []);
 
