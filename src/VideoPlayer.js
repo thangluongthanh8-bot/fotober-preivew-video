@@ -13,17 +13,17 @@ export function VideoPlayer() {
   useEffect(() => {
     const devtoolsDetection = () => {
       const devtools = /./;
-      devtools.toString = function() {
+      devtools.toString = function () {
         setIsDevTool(true); // Nếu DevTools mở thì cập nhật trạng thái
       };
       console.log(devtools); // Thực thi để kích hoạt việc kiểm tra
     };
 
-    // Kiểm tra liên tục trong vòng 500ms
-    const intervalId = setInterval(devtoolsDetection, 500);
+    // Chỉ kiểm tra một lần khi component được mount
+    devtoolsDetection();
 
     return () => {
-      clearInterval(intervalId); // Dọn dẹp khi component unmount
+      // Dọn dẹp nếu cần
     };
   }, []);
 
