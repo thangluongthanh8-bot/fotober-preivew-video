@@ -3,39 +3,51 @@ import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom'; // Import useParams để lấy tham số URL
 
 export function VideoPlayer() {
-  let isDevTool = false;
   const { order_id, video_id } = useParams(); // Lấy order_id và video_id từ URL
   const [videoUrl, setVideoUrl] = useState(null); // State để lưu trữ URL video
   const [orderInfo, setOrderInfo] = useState(null); // State để lưu thông tin đơn hàng
   const [loading, setLoading] = useState(true); // Trạng thái loading
+  const [isDevTool, setIsDevTool] = useState(false); // Thêm state để kiểm tra DevTools
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight }); // Trạng thái kích thước cửa sổ
   
-  // Hàm kiểm tra khi DevTools mở
+  // Lưu kích thước cửa sổ ban đầu khi trang load lần đầu
+  const [initialSize, setInitialSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // Kiểm tra khi DevTools mở
   function onDevToolsOpen() {
-    isDevTool = true;
+    setIsDevTool(true); // Đánh dấu DevTools đã mở
+    setVideoUrl(null);  // Xóa URL video khi DevTools mở
   }
 
-  class DevToolsChecker extends Error {
-    toString() {
-      return ''; // Trả về một chuỗi rỗng
-    }
+  // Kiểm tra DevTools thông qua đối tượng console
+  useEffect(() => {
+    const devtoolsDetection = () => {
+      const devtools = /./;
+      devtools.toString = function () {
+        onDevToolsOpen(); // Khi DevTools mở, gọi hàm này
+      };
+      console.log(devtools); // Thực thi để kích hoạt việc kiểm tra
+    };
 
-    get message() {
-      onDevToolsOpen(); // Gọi hàm khi DevTools mở
-    }
-  }
+    devtoolsDetection(); // Kiểm tra DevTools khi component được mount
 
-  // Kiểm tra DevTools thông qua lỗi
-  console.log(new DevToolsChecker());
+    // Dọn dẹp khi cần
+    return () => {
+      clearTimeout();
+    };
+  }, []);
 
-  // Kiểm tra thay đổi kích thước cửa sổ
+  // Kiểm tra thay đổi kích thước cửa sổ so với kích thước ban đầu
   useEffect(() => {
     const handleResize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-      
-      // Nếu kích thước cửa sổ thay đổi lớn (ví dụ: giảm hơn 20px), xác định DevTools có thể đã mở
-      if (window.innerWidth < 800 || window.innerHeight < 600) {
-        isDevTool = true;
+
+      // So sánh kích thước mới với kích thước ban đầu
+      if (
+        Math.abs(window.innerWidth - initialSize.width) > 50 || // So sánh nếu kích thước thay đổi lớn hơn 50px
+        Math.abs(window.innerHeight - initialSize.height) > 50
+      ) {
+        onDevToolsOpen(); // Nếu thay đổi kích thước quá lớn, xác định DevTools đã mở
       }
     };
 
@@ -46,7 +58,7 @@ export function VideoPlayer() {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [windowSize]); // Chạy lại khi kích thước cửa sổ thay đổi
+  }, [initialSize]); // Chạy lại khi kích thước cửa sổ thay đổi
 
   useEffect(() => {
     if (order_id && video_id && !isDevTool) {
@@ -65,17 +77,19 @@ export function VideoPlayer() {
           setOrderInfo(data.data.order); // Lưu thông tin đơn hàng
           setLoading(false); // Nếu DevTools mở thì không cần loading
         } catch (error) {
-          // console.error('Error fetching video:', error);
+          console.error('Error fetching video:', error);
+          setLoading(false); // Đảm bảo không bị treo trong trường hợp lỗi
         }
       };
       fetchVideo();
     } else {
       setLoading(false); // Nếu DevTools mở thì không cần loading
     }
-  }, [order_id, video_id]); // Gọi API mỗi khi order_id hoặc video_id thay đổi
+  }, [order_id, video_id, isDevTool]); // Gọi lại mỗi khi order_id, video_id hoặc isDevTool thay đổi
 
+  // Nếu DevTools mở, block hoàn toàn trang và xóa video
   if (isDevTool) {
-    return <h1>DevTools is open. Access is blocked.</h1>; // Hiển thị khi DevTools mở
+    return <h1 style={{ color: 'red', textAlign: 'center' }}>DevTools is open. Access is blocked.</h1>;
   }
 
   if (loading) {
