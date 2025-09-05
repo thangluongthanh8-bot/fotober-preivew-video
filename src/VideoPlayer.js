@@ -8,19 +8,46 @@ export function VideoPlayer() {
   const [videoUrl, setVideoUrl] = useState(null); // State để lưu trữ URL video
   const [orderInfo, setOrderInfo] = useState(null); // State để lưu thông tin đơn hàng
   const [loading, setLoading] = useState(true); // Trạng thái loading
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight }); // Trạng thái kích thước cửa sổ
   
+  // Hàm kiểm tra khi DevTools mở
   function onDevToolsOpen() {
     isDevTool = true;
   }
+
   class DevToolsChecker extends Error {
     toString() {
-  
+      return ''; // Trả về một chuỗi rỗng
     }
+
     get message() {
-        onDevToolsOpen();
+      onDevToolsOpen(); // Gọi hàm khi DevTools mở
     }
   }
+
+  // Kiểm tra DevTools thông qua lỗi
   console.log(new DevToolsChecker());
+
+  // Kiểm tra thay đổi kích thước cửa sổ
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+      
+      // Nếu kích thước cửa sổ thay đổi lớn (ví dụ: giảm hơn 20px), xác định DevTools có thể đã mở
+      if (window.innerWidth < 800 || window.innerHeight < 600) {
+        isDevTool = true;
+      }
+    };
+
+    // Lắng nghe sự kiện thay đổi kích thước cửa sổ
+    window.addEventListener('resize', handleResize);
+
+    // Dọn dẹp khi component unmount
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [windowSize]); // Chạy lại khi kích thước cửa sổ thay đổi
+
   useEffect(() => {
     if (order_id && video_id && !isDevTool) {
       const fetchVideo = async () => {
@@ -29,12 +56,12 @@ export function VideoPlayer() {
           const text = await response.text(); // Lấy phản hồi dưới dạng văn bản
           
           const data = JSON.parse(text); // Chuyển đổi văn bản thành JSON
-      
+          
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
+          
           setVideoUrl(data.data.link); // Lưu URL video
-          console.log(data.data.link);
           setOrderInfo(data.data.order); // Lưu thông tin đơn hàng
           setLoading(false); // Nếu DevTools mở thì không cần loading
         } catch (error) {
@@ -48,13 +75,13 @@ export function VideoPlayer() {
   }, [order_id, video_id]); // Gọi API mỗi khi order_id hoặc video_id thay đổi
 
   if (isDevTool) {
-    return <h1 >DevTools is open. Access is blocked.</h1>; // Hiển thị trạng thái loading
+    return <h1>DevTools is open. Access is blocked.</h1>; // Hiển thị khi DevTools mở
   }
-  
+
   if (loading) {
     return <div>Loading video...</div>; // Hiển thị trạng thái loading
-  }else if (!videoUrl) {
-    return <div>No video data found.</div>; // Nếu không có dữ liệu
+  } else if (!videoUrl) {
+    return <div>No video data found.</div>; // Nếu không có dữ liệu video
   }
 
   return (
@@ -72,12 +99,12 @@ export function VideoPlayer() {
           }
         }}
       />
-        <div className="order-info">
-          <h3>Order Information</h3>
-          <p><strong>Name:</strong> {orderInfo.name}</p>
-          <p><strong>Code:</strong> {orderInfo.code}</p>
-          <p><strong>Notes:</strong> {orderInfo.notes}</p>
-        </div>
+      <div className="order-info">
+        <h3>Order Information</h3>
+        <p><strong>Name:</strong> {orderInfo.name}</p>
+        <p><strong>Code:</strong> {orderInfo.code}</p>
+        <p><strong>Notes:</strong> {orderInfo.notes}</p>
+      </div>
     </div>
   );
 }
