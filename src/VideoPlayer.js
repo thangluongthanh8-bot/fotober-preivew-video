@@ -9,21 +9,24 @@ export function VideoPlayer() {
   const [loading, setLoading] = useState(true); // Trạng thái loading
   const [isDevTool, setIsDevTool] = useState(false); // Thêm state để kiểm tra DevTools
 
-  // Kiểm tra DevTools mở liên tục
+  // Kiểm tra DevTools khi độ rộng cửa sổ thay đổi
   useEffect(() => {
-    const devtoolsDetection = () => {
-      const devtools = /./;
-      devtools.toString = function () {
-        setIsDevTool(true); // Nếu DevTools mở thì cập nhật trạng thái
-      };
-      console.log(devtools); // Thực thi để kích hoạt việc kiểm tra
+    const checkDevTools = () => {
+      const width = window.innerWidth; // Lấy độ rộng cửa sổ
+      const height = window.innerHeight; // Lấy độ cao cửa sổ
+
+      // Giả sử khi DevTools mở, độ rộng sẽ giảm xuống
+      if (width < 800 || height < 600) {
+        setIsDevTool(true); // Nếu độ rộng thay đổi, có thể DevTools đã mở
+      }
     };
 
-    // Chỉ kiểm tra một lần khi component được mount
-    devtoolsDetection();
+    // Kiểm tra khi cửa sổ thay đổi kích thước
+    window.addEventListener('resize', checkDevTools);
 
+    // Clean up khi component unmount
     return () => {
-      // Dọn dẹp nếu cần
+      window.removeEventListener('resize', checkDevTools);
     };
   }, []);
 
