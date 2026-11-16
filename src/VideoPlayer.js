@@ -2,58 +2,30 @@ import React, { useEffect, useState } from 'react';
 import ReactPlayer from 'react-player';
 import { useParams } from 'react-router-dom'; // Import useParams để lấy tham số URL
 
+// Link chia sẻ Dropbox (dl=0/dl=1) trả về trang HTML; chỉ Chrome mới tự được redirect sang file.
+// iOS Safari cần link file trực tiếp (raw=1) hỗ trợ Range request mới phát được video.
+const toDirectVideoUrl = (link) => {
+  if (!link) return link;
+  try {
+    const url = new URL(link);
+    if (/(^|\.)dropbox\.com$/i.test(url.hostname)) {
+      url.searchParams.delete('dl');
+      url.searchParams.set('raw', '1');
+      return url.toString();
+    }
+  } catch (e) {
+    // URL không hợp lệ, giữ nguyên
+  }
+  return link;
+};
+
 export function VideoPlayer() {
   let isDevTool = false;
   const { order_id, video_id } = useParams(); // Lấy order_id và video_id từ URL
   const [videoUrl, setVideoUrl] = useState(null); // State để lưu trữ URL video
   const [orderInfo, setOrderInfo] = useState(null); // State để lưu thông tin đơn hàng
   const [loading, setLoading] = useState(true); // Trạng thái loading
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight }); // Trạng thái kích thước cửa sổ
-  
-  // Lưu kích thước cửa sổ ban đầu khi trang load lần đầu
-  const [initialSize, setInitialSize] = useState({ width: window.innerWidth, height: window.innerHeight });
-
-  // Kiểm tra khi DevTools mở
-  function onDevToolsOpen() {
-    isDevTool = true;
-    setVideoUrl(null); // Khi DevTools mở, xóa URL video
-  }
-
-  class DevToolsChecker extends Error {
-    toString() {
-      return ''; // Trả về một chuỗi rỗng
-    }
-
-    get message() {
-      onDevToolsOpen(); // Khi DevTools mở, gọi hàm này
-    }
-  }
-
-  // Kiểm tra DevTools thông qua đối tượng console
-  console.log(new DevToolsChecker());
-
-  // Kiểm tra thay đổi kích thước cửa sổ so với kích thước ban đầu
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-
-      // So sánh kích thước mới với kích thước ban đầu
-      if (
-        Math.abs(window.innerWidth - initialSize.width) > 50 || // So sánh nếu kích thước thay đổi lớn hơn 50px
-        Math.abs(window.innerHeight - initialSize.height) > 50
-      ) {
-        onDevToolsOpen(); // Nếu thay đổi kích thước quá lớn, xác định DevTools đã mở
-      }
-    };
-
-    // Lắng nghe sự kiện thay đổi kích thước cửa sổ
-    window.addEventListener('resize', handleResize);
-
-    // Dọn dẹp khi component unmount
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [initialSize]); // Chạy lại khi kích thước cửa sổ thay đổi
+  const [errorMsg, setErrorMsg] = useState(null); // State để lưu thông báo lỗi
 
   useEffect(() => {
     if (order_id && video_id && !isDevTool) {
@@ -61,18 +33,25 @@ export function VideoPlayer() {
         try {
           const response = await fetch(`${process.env.REACT_APP_API_URL}/api/get-video?order_id=${order_id}&video_id=${video_id}`);
           const text = await response.text(); // Lấy phản hồi dưới dạng văn bản
-          
-          const data = JSON.parse(text); // Chuyển đổi văn bản thành JSON
-          
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
+
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            throw new Error('Invalid JSON response');
           }
-          
-          setVideoUrl(data.data.link); // Lưu URL video
+
+          if (!response.ok || data.status === 'error' || !data.data) {
+            setErrorMsg(data.message || 'No video data found.');
+            setLoading(false);
+            return;
+          }
+
+          setVideoUrl(toDirectVideoUrl(data.data.link)); // Lưu URL video (link trực tiếp để iOS Safari phát được)
           setOrderInfo(data.data.order); // Lưu thông tin đơn hàng
-          setLoading(false); // Nếu DevTools mở thì không cần loading
+          setLoading(false);
         } catch (error) {
-          // console.error('Error fetching video:', error);
+          setErrorMsg('Failed to load video data.');
           setLoading(false); // Đảm bảo không bị treo trong trường hợp lỗi
         }
       };
@@ -80,17 +59,12 @@ export function VideoPlayer() {
     } else {
       setLoading(false); // Nếu DevTools mở thì không cần loading
     }
-  }, [order_id, video_id, isDevTool]); // Gọi lại mỗi khi order_id, video_id hoặc isDevTool thay đổi
-
-  // Nếu DevTools mở, block hoàn toàn trang và xóa video
-  if (isDevTool) {
-    return <h1 style={{ color: 'red', textAlign: 'center' }}>DevTools is open. Access is blocked.</h1>;
-  }
+  }, [order_id, video_id, isDevTool]);
 
   if (loading) {
     return <div>Loading video...</div>; // Hiển thị trạng thái loading
-  } else if (!videoUrl) {
-    return <div>No video data found.</div>; // Nếu không có dữ liệu video
+  } else if (errorMsg || !videoUrl) {
+    return <div>{errorMsg || 'No video data found.'}</div>; // Hiển thị thông báo lỗi hoặc không tìm thấy
   }
 
   return (
@@ -99,9 +73,11 @@ export function VideoPlayer() {
         url={videoUrl} // Sử dụng URL video từ API
         className="react-player"
         controls={true}
+        playsinline={true}
         config={{
           file: {
             attributes: {
+              preload: 'metadata',
               controlsList: 'nodownload',
               onContextMenu: e => e.preventDefault(),
             }

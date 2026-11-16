@@ -28,41 +28,42 @@ const isSupportedBrowser = () => {
   const userAgent = navigator.userAgent.toLowerCase();
   let userAgentData = null;
 
-try {
+  try {
     userAgentData = navigator.userAgentData;
-} catch (error) {
+  } catch (error) {
     console.warn("userAgentData không được hỗ trợ: ", error);
-}
+  }
 
-console.log(navigator);
+  console.log(navigator);
 
-// Danh sách các trình duyệt hỗ trợ
-const supportedBrowsers = ['chrome', 'firefox', 'safari', 'brave', 'edg'];
+  // Danh sách các trình duyệt hỗ trợ
+  // crios/fxios/edgios: Chrome/Firefox/Edge trên iOS
+  const supportedBrowsers = ['chrome', 'firefox', 'safari', 'brave', 'edg', 'crios', 'fxios', 'edgios'];
 
-if (userAgentData && userAgentData.brands) {
+  if (userAgentData && userAgentData.brands) {
     // Kiểm tra trình duyệt dựa trên userAgentData
     const brands = userAgentData.brands.map(({ brand }) => brand.toLowerCase());
     console.log(brands);
 
     if (brands.length > 0) {
-        return brands.some(brand => 
-            brand === 'google chrome' || 
-            brand === 'firefox' || 
-            brand === 'microsoft edge' || 
-            brand === 'brave' || 
-            brand === 'safari'
-        );
+      return brands.some(brand =>
+        brand === 'google chrome' ||
+        brand === 'firefox' ||
+        brand === 'microsoft edge' ||
+        brand === 'brave' ||
+        brand === 'safari'
+      );
     }
-}
+  }
 
-// Nếu userAgentData không tồn tại, kiểm tra userAgent
-if (userAgent) {
+  // Nếu userAgentData không tồn tại, kiểm tra userAgent
+  if (userAgent) {
     // Kiểm tra dựa trên danh sách supportedBrowsers
     return supportedBrowsers.some(browser => userAgent.includes(browser));
-}
+  }
 
-// Mặc định trả về false nếu không tìm thấy trình duyệt hỗ trợ
-return false;
+  // Mặc định trả về false nếu không tìm thấy trình duyệt hỗ trợ
+  return false;
 };
 
 export function App(props) {
@@ -70,16 +71,16 @@ export function App(props) {
   let userAgentData = null;
   let brands = [];
 
-try {
+  try {
     userAgentData = navigator.userAgentData;
 
-} catch (error) {
+  } catch (error) {
     console.warn("userAgentData không được hỗ trợ: ", error);
-}
-if (userAgentData && userAgentData.brands) {
-  // Kiểm tra trình duyệt dựa trên userAgentData
-  brands = userAgentData.brands.map(({ brand }) => brand.toLowerCase());
-}
+  }
+  if (userAgentData && userAgentData.brands) {
+    // Kiểm tra trình duyệt dựa trên userAgentData
+    brands = userAgentData.brands.map(({ brand }) => brand.toLowerCase());
+  }
   const userAgent = navigator.userAgent.toLowerCase();
   const navigatorInfo = JSON.stringify({
     appCodeName: navigator.appCodeName,
@@ -94,10 +95,10 @@ if (userAgentData && userAgentData.brands) {
   const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   const [isForbidden, setIsForbidden] = useState(false); // Trạng thái phản hồi 403
   const [urls, setUrls] = useState([]); // Trạng thái phản hồi 403
-// Function to detect if DevTools is open
+  // Function to detect if DevTools is open
 
   useEffect(() => {
-    
+
     setIsBrowserSupported(isSupportedBrowser()); // Kiểm tra trình duyệt
     const initialize = async () => {
       try {
@@ -113,11 +114,11 @@ if (userAgentData && userAgentData.brands) {
             console.log('event', event.data.urls);
             url.push(event.data.urls);
           });
-            setUrls([urls, url]); // Gán trạng thái là forbidden
+          setUrls([urls, url]); // Gán trạng thái là forbidden
         }
         // Ngăn phím F12 và Ctrl+U (Xem mã nguồn)
-        document.addEventListener('keydown', handleKeyDown);
-        document.addEventListener('contextmenu', handleContextMenu);
+        // document.addEventListener('keydown', handleKeyDown);
+        // document.addEventListener('contextmenu', handleContextMenu);
       } catch (error) {
         console.error('Có lỗi xảy ra trong quá trình kiểm tra yêu cầu:', error);
       }
@@ -127,29 +128,29 @@ if (userAgentData && userAgentData.brands) {
 
     // Cleanup các event listeners khi component bị unmount
     return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('keydown', handleKeyDown);
+      // document.removeEventListener('contextmenu', handleContextMenu);
+      // document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
   const handleKeyDown = (event) => {
     // Ngăn phím F12 và Ctrl+U (Xem mã nguồn)
     if ((event.ctrlKey && (event.key === 'I' || event.key === 'U')) ||
-      (event.ctrlKey && event.shiftKey && event.key === 'J') || 
+      (event.ctrlKey && event.shiftKey && event.key === 'J') ||
       (event.metaKey && (event.key === 'I' || event.key === 'U')) ||
       event.key === 'F12') {
       event.preventDefault();
       event.stopImmediatePropagation();
     }
   };
-  
+
 
   const handleContextMenu = (event) => {
     // Ngăn menu chuột phải
     event.preventDefault();
   };
-  
-  console.log('url',urls.length);
+
+  console.log('url', urls.length);
   // Kiểm tra phản hồi 403
   if (isForbidden) {
     return <h1>You do not have permission to access this content. Please use another browser</h1>;
@@ -159,7 +160,7 @@ if (userAgentData && userAgentData.brands) {
 
   return (
     <Routes>
-      <Route path="/video/:order_id/:video_id" element={<VideoPlayer  />} />
+      <Route path="/video/:order_id/:video_id" element={<VideoPlayer />} />
       {/* Có thể thêm các route khác ở đây nếu cần */}
     </Routes>
   );
