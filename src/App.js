@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { json, Route, Routes } from 'react-router-dom';
 import { VideoPlayer } from './VideoPlayer'; // Import component VideoPlayer
+import { useDevToolsBlocker } from './hooks/useDevToolsBlocker';
 import './App.css';
 
 const isCheckRequest = () => {
   return new Promise((resolve, reject) => {
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      const register = () => {
         navigator.serviceWorker.register('/sw.js')
           .then(registration => {
             console.log('Service Worker registered with scope:', registration.scope);
@@ -16,7 +17,13 @@ const isCheckRequest = () => {
             console.error('Service Worker registration failed:', error);
             reject(error); // Từ chối Promise nếu có lỗi
           });
-      });
+      };
+      // Nếu trang đã load xong trước khi effect chạy thì sự kiện 'load' sẽ không bắn lại nữa
+      if (document.readyState === 'complete') {
+        register();
+      } else {
+        window.addEventListener('load', register, { once: true });
+      }
     } else {
       resolve(); // Giải quyết Promise ngay lập tức nếu không hỗ trợ Service Worker
     }
@@ -26,6 +33,14 @@ const isCheckRequest = () => {
 // Hàm kiểm tra trình duyệt
 const isSupportedBrowser = () => {
   const userAgent = navigator.userAgent.toLowerCase();
+
+  // Mọi trình duyệt trên iOS/iPadOS đều chạy WebKit. Trình duyệt trong app (Gmail, Facebook,
+  // Zalo, Messenger...) không có "safari" trong UA nên cho phép ở đây.
+  const isIOS = /iphone|ipad|ipod/.test(userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS && userAgent.includes('applewebkit')) {
+    return true;
+  }
   let userAgentData = null;
 
   try {
@@ -95,11 +110,16 @@ export function App(props) {
   const [isBrowserSupported, setIsBrowserSupported] = useState(false);
   const [isForbidden, setIsForbidden] = useState(false); // Trạng thái phản hồi 403
   const [urls, setUrls] = useState([]); // Trạng thái phản hồi 403
+  const { isDevToolOpen } = useDevToolsBlocker(); // Phát hiện DevTools (chỉ desktop)
   // Function to detect if DevTools is open
 
   useEffect(() => {
 
     setIsBrowserSupported(isSupportedBrowser()); // Kiểm tra trình duyệt
+    // Ngăn phím F12, Ctrl+U... và chuột phải (gắn ngay, không phụ thuộc Service Worker)
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('contextmenu', handleContextMenu);
+
     const initialize = async () => {
       try {
         await isCheckRequest(); // Chờ cho isCheckRequest hoàn thành
@@ -116,9 +136,6 @@ export function App(props) {
           });
           setUrls([urls, url]); // Gán trạng thái là forbidden
         }
-        // Ngăn phím F12 và Ctrl+U (Xem mã nguồn)
-        // document.addEventListener('keydown', handleKeyDown);
-        // document.addEventListener('contextmenu', handleContextMenu);
       } catch (error) {
         console.error('Có lỗi xảy ra trong quá trình kiểm tra yêu cầu:', error);
       }
@@ -128,8 +145,8 @@ export function App(props) {
 
     // Cleanup các event listeners khi component bị unmount
     return () => {
-      // document.removeEventListener('contextmenu', handleContextMenu);
-      // document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -151,6 +168,14 @@ export function App(props) {
   };
 
   console.log('url', urls.length);
+  // DevTools đang mở: gỡ hẳn player khỏi trang; đóng DevTools sẽ tự reload
+  if (isDevToolOpen) {
+    return (
+      <h1 style={{ color: 'red', textAlign: 'center' }}>
+        DevTools is open. Access is blocked. Please close DevTools to continue.
+      </h1>
+    );
+  }
   // Kiểm tra phản hồi 403
   if (isForbidden) {
     return <h1>You do not have permission to access this content. Please use another browser</h1>;

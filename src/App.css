@@ -96,3 +96,37 @@ html, body {
     width: 85%;
   }
 }
+
+/* Thông báo yêu cầu giữ focus trên trang xem video */
+.focus-guard {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #111;
+  cursor: pointer;
+  z-index: 1000;
+}
+.focus-guard-card {
+  max-width: 480px;
+  padding: 28px 24px;
+  border-radius: 12px;
+  background: #fff;
+  color: #222;
+  text-align: center;
+  line-height: 1.5;
+}
+.focus-guard-card h2 {
+  margin: 0 0 12px;
+  color: #d93025;
+}
+.focus-notice {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fff4e5;
+  color: #8a4b00;
+  border: 1px solid #ffd8a8;
+}
